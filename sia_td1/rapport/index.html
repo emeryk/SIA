@@ -1,0 +1,331 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>SIA - Labbe Emeric</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github-gist.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="toc.min.js"></script>
+
+<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+        displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<div id="toc"></div>
+
+<div id="content">
+
+<h1>SIA - Labbé Emeric</h1>
+
+<h2>TD1 - Échantillonnage</h2>
+
+<h3>1. Intégration de Monte-Carlo 1D</h3>
+
+<p>La méthode de Monte-Carlo nous permet d'estimer une valeur numérique à l'aide de procédés aléatoires.
+Nous allons ici calculer l'intégrale de la fonction 1D : f(x) = 5x⁴ sur l'intervale [0,1].
+Nous calculons ensuite l'erreur d'estimation (différence entre la valeur estimée et réelle), la variance, l'écart type numérique et analytique. On affiche ces trois valeurs : </p>
+
+<figure>
+	<img src="MonteCarlo.png" width="500" alt="MonteCarlo" />
+	<figcaption>Erreur d'estimation, variance analytique et numérique en fonction du nombre d'échantillons.</figcaption>
+</figure>
+
+<h3>2. Anti-Aliasing</h3>
+
+<h4>2.1. Échantillonnage régulier</h4>
+
+<p>Dans un premier temps on va diviser chaque pixel en une grille de taille n par n.</p>
+
+<figure>
+	<img src="twold.png" width="500" alt="régulier" />
+	<figcaption>Échantillonnage régulier – 8x8 rayons par pixel.</figcaption>
+</figure>
+<figure>
+	<img src="twzoom.png" width="500" alt="régulier" />
+	<figcaption>Échantillonnage régulier – 8x8 rayons par pixel.</figcaption>
+</figure>
+
+<h4>2.2. Échantillonnage stratifié</h4>
+
+<p>On ajoute maintenant du jitter afin d'apporter plus de précision lors des lancers de rayons.</p>
+
+<figure>
+	<img src="tw_1.png" width="500" alt="stratifié" />
+	<figcaption>Échantillonnage stratifié – 8x8 rayons par pixel</figcaption>
+</figure>
+
+<figure>
+	<img src="deuxSpheres2x2.png" width="500" alt="stratifié" />
+	<figcaption>Échantillonnage stratifié – 2x2 rayons par pixel</figcaption>
+</figure>
+
+<figure>
+	<img src="deuxSpheres8x8.png" width="500" alt="stratifié" />
+	<figcaption>Échantillonnage stratifié – 8x8 rayons par pixel</figcaption>
+</figure>
+
+<figure>
+	<img src="deuxSpheres32x32.png" width="500" alt="stratifié" />
+	<figcaption>Échantillonnage stratifié – 32x32 rayons par pixel</figcaption>
+</figure>
+
+<figure>
+	<img src="deuxSpheres128x128.png" width="500" alt="stratifié" />
+	<figcaption>Échantillonnage stratifié – 128x128 rayons par pixel</figcaption>
+</figure>
+
+
+<h3>3. Sources étendues</h3>
+
+<h4>3.1. Échantillonnage de Monte-Carlo</h4>
+<p>On modifie alors notre buffer afin de déterminer des sources lumineuses étendus</p>
+
+<div class="highlight">Cas d'une area-light :
+<pre><code class="cpp">if(dynamic_cast<const AreaLight*>(*it))
+{
+    const AreaLight* light = dynamic_cast<const AreaLight*>(*it);
+    //source étendue
+    Vector3f lightDir;
+    float dist;
+    lightDir = light->position() - pos;
+
+    float randX = Eigen::internal::random<float>(0,1);
+    float randY = Eigen::internal::random<float>(0,1);
+
+    randX -= 0.5;
+    randY -= 0.5;
+
+    Vector3f uV = light->size().x() * light->uVec() * randX;
+    Vector3f vV = light->size().y() * light->vVec() * randY;
+
+    lightDir += uV + vV;
+
+    dist = lightDir.norm();
+
+    lightDir.normalize();
+
+    Ray shadow_ray(pos + normal*Epsilon, lightDir, true);
+    Hit shadow_hit;
+    scene->intersect(shadow_ray, shadow_hit);
+    Color3f attenuation = Color3f(1.f);
+    if(shadow_hit.t()<dist){
+        if(!shadow_hit.shape()->isEmissive())
+            attenuation = 0.5f * shadow_hit.shape()->material()->transmissivness();
+        if((attenuation <= 1e-6).all())
+            continue;
+    }
+    float cos_term = std::max(0.f,lightDir.dot(normal));
+    Color3f brdf = material->brdf(-ray.direction, lightDir, normal, hit.texcoord());
+    radiance += (light)->intensity(pos, (light->position() + uV + vV)) * cos_term * brdf * attenuation;
+}
+</code></pre></div>
+
+<figure>
+  <img src="tw_area_sourceEtendue.png" width="500" alt="arealight" />
+  <figcaption>AreaLight - 8x8 rayons par pixel</figcaption>
+</figure>
+
+<figure>
+  <img src="killeroo_area_0.1x0.1.png" width="500" alt="arealight" />
+  <figcaption>AreaLight - source de taille 0.1x0.1 - 8x8 rayons par pixel</figcaption>
+</figure>
+
+<figure>
+  <img src="killeroo_area_0.5x0.5.png" width="500" alt="arealight" />
+  <figcaption>AreaLight - source de taille 0.5x0.5 - 8x8 rayons par pixel</figcaption>
+</figure>
+
+<h4>3.2. Source texturée</h4>
+<p>On va maintenant moduler l'intensité de la source étendue avec notre texture.</p>
+
+<div class="highlight">Modification de l'intensité avec note texture :
+<pre><code class="cpp">if(m_texture) {
+
+    Vector3f dir2 = y - position() + this->size()[0] / 2 * uVec() + this->size()[1] / 2 * vVec();
+
+    float uCoef = dir2.dot(uVec());
+    float vCoef = dir2.dot(vVec());
+
+    int widthTexture = (*m_texture).cols();
+    int heightTexture = (*m_texture).rows();
+
+    float xTexture = uCoef * widthTexture / this->size()[0];
+    float yTexture = vCoef * heightTexture / this->size()[1];
+
+    intensity *= (*m_texture)(xTexture, yTexture);
+}
+</code></pre></div>
+
+<figure>
+  <img src="tw_area_zoom.png" width="500" alt="arealight" />
+  <figcaption>AreaLight - 8x8 rayons par pixel</figcaption>
+</figure>
+
+<h3>4. Ambiante Occlusion</h3>
+
+<h4>4.1 Échantillonnage d'un hémisphère</h4>
+
+<p>On réalise les différentes fonctions pour visualiser un cercle puis une demi sphère grâce aux formules du cours.</p>
+
+<div class="highlight">squareToUniformDisk :
+<pre><code class="cpp">Point2f Warp::squareToUniformDisk(const Point2f &sample) {
+    float r = sqrt(sample.x());
+    float phi = 2 * M_PI * sample.y();
+    return Point2f(r * cos(phi), r * sin(phi));
+}
+
+float Warp::squareToUniformDiskPdf(const Point2f &p) {
+    float res = sqrt(p.x() * p.x() + p.y() * p.y());
+    float c = 1.0 / M_PI;
+    return (res > 1) ? 0 : c;
+}
+</code></pre></div>
+
+<figure>
+  <img src="disk.png" width="300" alt="disk" >
+  <img src="disk2.png" width="300" alt="disk2" />
+  <figcaption>Échantillonnage uniforme de l'hémisphère autour du pôle (0,0,1)</figcaption>
+</figure>
+
+<div class="highlight">squareToUniformHemisphere :
+<pre><code class="cpp">Vector3f Warp::squareToUniformHemisphere(const Point2f &sample) {
+    float phi = 2 * M_PI * sample.x();
+    float theta = acos(sample.y());
+    return Vector3f(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+}
+
+float Warp::squareToUniformHemispherePdf(const Vector3f &v) {
+    float res = sqrt(v.x() * v.x() + v.y() * v.y() + v.z() * v.z());
+    float c = 1.0 / (2 * M_PI);
+    return (res > 1 || v.z() < 0) ? 0 : c;
+}
+</code></pre></div>
+
+<figure>
+  <img src="hemisphere.png" width="300" alt="hemisphere" >
+  <img src="hemisphere2.png" width="300" alt="hemisphere2" />
+  <figcaption>Échantillonnage uniforme de l'hémisphère autour du pôle (0,0,1)</figcaption>
+</figure>
+
+<div class="highlight">squareToCosineHemisphere :
+<pre><code class="cpp">Vector3f Warp::squareToCosineHemisphere(const Point2f &sample) {
+  float phi = 2 * M_PI * sample.x();
+  float theta = acos(sqrt(1 - sample.y()));
+  return Vector3f(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+}
+
+float Warp::squareToCosineHemispherePdf(const Vector3f &v) {
+  float res = sqrt(v.x() * v.x() + v.y() * v.y() + v.z() * v.z());
+  float c = 1.0 / M_PI * v.z();
+  return (res > 1 || v.z() < 0) ? 0 : c;
+}
+</code></pre></div>
+
+<figure>
+  <img src="hemisphereCos.png" width="300" alt="hemisphereCos" >
+  <img src="hemisphereCos2.png" width="300" alt="hemisphereCos2" />
+  <figcaption>Échantillonnage pondéré par le cosinus de l'hémisphère autour du pôle (0,0,1)</figcaption>
+</figure>
+
+<h4>4.2 Calcul de l'AO</h4>
+
+<p>Pour réaliser cet intégrateur, on va chercher si une intersection est détectée, si il n'y en n'a pas, le rayon n'est pas bloqué, on obtient donc un pixel clair. On applique donc la formule en calculant d'abbord les vecteur u et v puis le plan n.</p>
+
+<div class="highlight">Calcul de l'AO :
+<pre><code class="cpp">for (int i = 0; i < m_sampleCount; i++)
+{
+  //Vector3f n = hit.normal();
+
+  float rand1 = Eigen::internal::random<float>(0,1);
+  float rand2 = Eigen::internal::random<float>(0,1);
+
+  Vector3f d;
+  if (m_cosineWeighted)
+    d = Warp::squareToCosineHemisphere(Point2f(rand1, rand2));
+  else
+    d = Warp::squareToUniformHemisphere(Point2f(rand1, rand2));
+
+  Vector3f u;
+  if(n.y() == 0 && n.z() == 0)
+    u = n.cross(Vector3f(0,0,1));
+  else
+    u = n.cross(Vector3f(1,0,0));
+  u.normalize();
+
+  Vector3f v;
+  v = u.cross(n);
+  v.normalize();
+
+  Vector3f p = d.x() * u + d.y() * v + d.z() * n;
+
+  Ray shadow_ray(pos + n*Epsilon, p, true);
+  Hit shadow_hit;
+  scene->intersect(shadow_ray, shadow_hit);
+
+  double pdf;
+
+  if (m_cosineWeighted)
+    pdf = Warp::squareToCosineHemispherePdf(d);
+  else
+    pdf = Warp::squareToUniformHemispherePdf(d);
+
+  if(!shadow_hit.foundIntersection())
+    sum += Color3f(1.0f)*((p.dot(n) / (p.norm() * n.norm())) / M_PI) / pdf;
+}
+sum /= m_sampleCount;
+
+}
+return sum;
+</code></pre></div>
+
+<figure>
+  <img src="killeroo_ao.png" width="500" alt="killeroo_ao" />
+  <figcaption>Échantillonnage uniforme avec 256 échantillons</figcaption>
+</figure>
+
+</div>
+
+<script type="text/javascript">
+	$('#toc').toc({
+	    'selectors': 'h2,h3,h4', //elements to use as headings
+	    'container': 'body', //element to find all selectors in
+	    'smoothScrolling': true, //enable or disable smooth scrolling on click
+	    'prefix': 'toc', //prefix for anchor tags and class names
+	    'onHighlight': function(el) {}, //called when a new section is highlighted
+	    'highlightOnScroll': true, //add class to heading that is currently in focus
+	    'highlightOffset': 100, //offset to trigger the next headline
+	    'anchorName': function(i, heading, prefix) { //custom function for anchor name
+	        return prefix+i;
+	    },
+	    'headerText': function(i, heading, $heading) { //custom function building the header-item text
+	        return $heading.text();
+	    },
+	'itemClass': function(i, heading, $heading, prefix) { // custom function for item class
+	  return $heading[0].tagName.toLowerCase();
+	}
+	});
+</script>
+
+</body>

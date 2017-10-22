@@ -1,0 +1,272 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>SIA - Labbe Emeric</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github-gist.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="toc.min.js"></script>
+
+<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+        displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<div id="toc"></div>
+
+<div id="content">
+
+<h1>SIA - Labbé Emeric</h1>
+
+<h2>TD2 - BRDF de Ward</h2>
+
+<h3>1. Éclairage direct</h3>
+
+<p>Implémentation de la BRDF de Ward :</p>
+<p>On utilise l'équation suivante
+$fr(i, o) = \frac{\rho_s}{4 \times \pi \times \alpha_x \times \alpha_y \times \sqrt{(i \cdot n) \times (o \cdot n)}} \times e^{- \frac{((h \cdot x) / \alpha_x)² + ((h \cdot y) / \alpha_y)²} {(h \cdot n)²}}$</p>
+<p>Appliquée à notre fonction on obtient le résultat suivant : </p>
+
+<div class="highlight">Code :
+<pre><code class="cpp">Color3f Ward::brdf(const Vector3f& viewDir, const Vector3f& lightDir, const Normal3f& normal, const Vector2f& uv) const
+{
+
+    float sq = lightDir.dot(normal) * viewDir.dot(normal);
+
+    if (sq <= 0)
+      return Color3f(0,0,0);
+
+    Vector3f d(0,1,0);
+
+    Vector3f x = (d - (d.dot(normal) * normal)).normalized();
+    Vector3f y = x.cross(normal);
+
+    Vector3f h = (viewDir + lightDir) / (viewDir + lightDir).norm();
+
+    float squareHX = (h.dot(x) / m_alphaX) * (h.dot(x) / m_alphaX);
+    float squareHY = (h.dot(y) / m_alphaY) * (h.dot(y) / m_alphaY);
+    float squareHN = h.dot(normal) * h.dot(normal);
+
+    float ex = - ((squareHX + squareHY) / squareHN);
+    float de = 4 * M_PI * m_alphaX * m_alphaY * sqrt(sq);
+    Color3f Fr = (m_specularColor / de) * exp(ex);
+
+    return diffuseColor(uv) / M_PI + Fr;
+}
+</code></pre></div>
+
+<figure>
+	<img src="images/sphereWard0.01.png" width="300" alt="sphereWard0.01" />
+  <img src="images/sphereWard0.1-0.5.png" width="300" alt="sphereWard0.1-0.5" />
+	<figcaption>alphaX = alphaY = 0.01 &  alphaX = 0.1 alphaY = 0.5</figcaption>
+</figure>
+
+<figure>
+	<img src="images/sphereWard0.25.png" width="300" alt="sphereWard0.25" />
+  <img src="images/sphereWard0.5-0.1.png" width="300" alt="sphereWard0.5-0.1" />
+	<figcaption>alphaX = alphaY = 0.25 & alphaX = 0.5 alphaY = 0.1</figcaption>
+</figure>
+
+<h3>2. Échantillonnage uniforme de la BRDF</h3>
+
+<p>On implémente ici l'intégrateur direct_mat</p>
+
+<p>La méthode est la même que pour les autres intégrateurs (lancer de rayon, findIntersect, récuperation de material, if M_IS : cast en Ward + calcul de la brdf)</p>
+
+<div class="highlight">Code :
+<pre><code class="cpp">class DirectMats : public Integrator
+{
+public:
+    DirectMats(const PropertyList &props)
+    {
+        m_sampleCount = props.getInteger("samples",4);
+        m_IS = props.getBoolean("IS", false);
+    }
+
+    Color3f Li(const Scene *scene, const Ray &ray) const {
+        Hit hit;
+        scene->intersect(ray, hit);
+        if (!hit.foundIntersection())
+            return scene->backgroundColor(ray.direction);
+
+        Color3f radiance = Color3f::Zero();
+        const Material* material = hit.shape()->material();
+
+        Normal3f normal = hit.normal();
+
+        for(int i=0; i<m_sampleCount; ++i){
+
+          if (m_IS) {
+
+            Vector3f r = static_cast<const Ward*>(material)->is(normal, - ray.direction);
+
+            if(normal.dot(r) < 0)
+              r = -r;
+
+            Color3f envmap = scene->backgroundColor(r);
+            Color3f BRDF = static_cast<const Ward*>(material)->premultBrdf(- ray.direction, r, normal, hit.texcoord());
+
+            radiance += (envmap * BRDF);
+          }
+
+          else {
+            Vector3f u = normal.unitOrthogonal();
+            Vector3f v = normal.cross(u);
+            Vector3f d;
+
+            float pdf;
+
+            d = Warp::squareToCosineHemisphere(Point2f(Eigen::internal::random<float>(0,1),Eigen::internal::random<float>(0,1)));
+            pdf = Warp::squareToCosineHemispherePdf(d);
+
+            Vector3f r = d.x() * u + d.y() * v + d.z() * normal;
+
+            Color3f envmap = scene->backgroundColor(r);
+            float cos_term = std::max(0.f,r.dot(normal));
+            Color3f BRDF = material->brdf(-ray.direction, r, normal, hit.texcoord());
+            radiance += (envmap * BRDF * cos_term) / pdf;
+          }
+        }
+
+        return radiance / m_sampleCount;
+    }
+</code></pre></div>
+
+
+<figure>
+	<img src="images/sphereWardEnvMap0.1.png" width="300" alt="sphereWardEnvMap0.1" />
+  <img src="images/sphereWardEnvMap0.1-0.5.png" width="300" alt="sphereWarEnvMap0.1-0.5" />
+	<figcaption>alphaX = alphaY = 0.1 & alphaX = 0.1 alphaY = 0.5</figcaption>
+</figure>
+
+<h3>3. Échantillonnage préférentiel</h3>
+
+<p>On cherche à réduire le bruit de nos images, pour cela il faut réduire la variance, on va donc utiliser la technique d'importance sampling.</p>
+
+<p>On utilise donc les formules suivantes :</p>
+
+<p>$o = 2 \times (i \cdot h) \times h - i$</p>
+
+<p>$\phi_h = \arctan(\frac{\alpha_y}{\alpha_x} \times \tan(2 \pi v))$</p>
+
+<p>$\theta_h = \arctan \sqrt{\frac{- \log_u}{\cos ² \times \phi_h / \alpha_x ² + \sin ² \times \phi_h / \alpha_y ²}}$</p>
+
+<p>On obtient le code suivant :</p>
+
+<div class="highlight">
+<pre><code class="cpp">float rand = Eigen::internal::random<float>(0, 1);
+
+if (rand < (m_specularColor.mean() / (m_specularColor.mean() + m_diffuseColor.mean()))) {
+
+  Point2f p1(Eigen::internal::random<float>(0,1),Eigen::internal::random<float>(0,1));
+
+  float angle = 2 * M_PI * p1.y();
+
+  float phi = atan(m_alphaY / m_alphaX * tan(angle));
+  float c = cos(phi);
+  float s = sin(phi),
+
+  theta = atan(sqrt( - log(p1.x()) / ((c * c) / ((m_alphaX * m_alphaX)) + (s * s) / ((m_alphaY * m_alphaY)))));
+
+  Vector3f d(0, 1, 0);
+
+  Vector3f u = (d - ((d.dot(n)) * n)).normalized();
+  Vector3f v = u.cross(n);
+  Vector3f h = Vector3f(sinf(theta) * cos(phi), sin(theta) * sin(phi), cos(theta)).normalized();
+
+  h = (h.x() * u + h.y() * v + h.z() * n).normalized();
+
+  return (2 * (ray_dir.dot(h)) * h - ray_dir).normalized();
+</code></pre></div>
+
+<div class="highlight">premultBrdf :
+<pre><code class="cpp">
+Color3f Ward::premultBrdf(const Vector3f& viewDir, const Vector3f& lightDir, const Normal3f& normal, const Vector2f& uv) const {
+
+  if (lightDir.dot(normal) * viewDir.dot(normal) <= 0)
+    return Color3f(0, 0, 0);
+
+  Vector3f h = (viewDir + lightDir).normalized();
+  return m_specularColor * h.dot(lightDir) * h.dot(normal) * h.dot(normal) * sqrt(viewDir.dot(normal) / lightDir.dot(normal));
+}
+</code></pre></div>
+
+<div class="highlight">Material::us :
+<pre><code class="cpp">Vector3f Material::us(Normal3f normal, float& pdf) const
+{
+
+  Point2f p = Point2f(Eigen::internal::random<float>(0,1), Eigen::internal::random<float>(0,1));
+
+  Vector3f d = Warp::squareToCosineHemisphere(p);
+
+  pdf = Warp::squareToCosineHemispherePdf(d);
+
+  Vector3f u = normal.unitOrthogonal();
+  Vector3f v = normal.cross(u);
+  Vector3f r = d.x() * u + d.y() * v + d.z() * normal;
+
+  return r;
+}
+</code></pre></div>
+
+<figure>
+  <img src="images/sphereWardEnvMap0.01.png" width="300" alt="sphereWardEnvMap0.01" />
+  <img src="images/sphereWardEnvMap0.1-0.1.png" width="300" alt="sphereWardEnvMap0.1-0.1" />
+  <figcaption>alphaX = alphaY = 0.01 & alphaX = alphaY = 0.1</figcaption>
+</figure>
+
+
+<p>Diffusion spéculaire ou diffus aléatoire : </p>
+
+<figure>
+  <img src="images/sphereWardEnvMap0.012.png" width="300" alt="sphereWardEnvMap0.012" />
+  <img src="images/sphereWardEnvMap0.12.png" width="300" alt="sphereWardEnvMap0.12" />
+  <figcaption>alphaX = alphaY = 0.01 & alphaX = alphaY = 0.1</figcaption>
+</figure>
+
+
+</div>
+
+<script type="text/javascript">
+	$('#toc').toc({
+	    'selectors': 'h2,h3,h4', //elements to use as headings
+	    'container': 'body', //element to find all selectors in
+	    'smoothScrolling': true, //enable or disable smooth scrolling on click
+	    'prefix': 'toc', //prefix for anchor tags and class names
+	    'onHighlight': function(el) {}, //called when a new section is highlighted
+	    'highlightOnScroll': true, //add class to heading that is currently in focus
+	    'highlightOffset': 100, //offset to trigger the next headline
+	    'anchorName': function(i, heading, prefix) { //custom function for anchor name
+	        return prefix+i;
+	    },
+	    'headerText': function(i, heading, $heading) { //custom function building the header-item text
+	        return $heading.text();
+	    },
+	'itemClass': function(i, heading, $heading, prefix) { // custom function for item class
+	  return $heading[0].tagName.toLowerCase();
+	}
+	});
+</script>
+
+</body>

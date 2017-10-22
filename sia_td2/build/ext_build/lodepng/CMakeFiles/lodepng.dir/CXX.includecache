@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/emeric/Master_2/Synthese_Image/sia_td2/ext/lodepng/lodepng.cpp
+lodepng.h
+/home/emeric/Master_2/Synthese_Image/sia_td2/ext/lodepng/lodepng.h
+limits.h
+-
+stdio.h
+-
+stdlib.h
+-
+
+/home/emeric/Master_2/Synthese_Image/sia_td2/ext/lodepng/lodepng.h
+string.h
+-
+vector
+-
+string
+-
+lodepng.h
+/home/emeric/Master_2/Synthese_Image/sia_td2/ext/lodepng/lodepng.h
+iostream
+-
+lodepng.h
+/home/emeric/Master_2/Synthese_Image/sia_td2/ext/lodepng/lodepng.h
+

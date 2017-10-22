@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/emeric/Master_2/Synthese_Image/sia_td2/ext/tinyobjloader/tiny_obj_loader.cc
+tiny_obj_loader.h
+/home/emeric/Master_2/Synthese_Image/sia_td2/ext/tinyobjloader/tiny_obj_loader.h
+
+/home/emeric/Master_2/Synthese_Image/sia_td2/ext/tinyobjloader/tiny_obj_loader.h
+map
+-
+string
+-
+vector
+-
+cassert
+-
+cctype
+-
+cmath
+-
+cstddef
+-
+cstdlib
+-
+cstring
+-
+utility
+-
+fstream
+-
+sstream
+-
+
