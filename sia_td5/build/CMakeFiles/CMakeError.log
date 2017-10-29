@@ -1,0 +1,55 @@
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /home/emeric/Master_2/Synthese_Image/sia_td5/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_c7bee/fast"
+/usr/bin/make -f CMakeFiles/cmTC_c7bee.dir/build.make CMakeFiles/cmTC_c7bee.dir/build
+make[1] : on entre dans le répertoire « /home/emeric/Master_2/Synthese_Image/sia_td5/build/CMakeFiles/CMakeTmp »
+Building C object CMakeFiles/cmTC_c7bee.dir/CheckSymbolExists.c.o
+/usr/bin/cc    -o CMakeFiles/cmTC_c7bee.dir/CheckSymbolExists.c.o   -c /home/emeric/Master_2/Synthese_Image/sia_td5/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_c7bee
+/usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c7bee.dir/link.txt --verbose=1
+/usr/bin/cc      -rdynamic CMakeFiles/cmTC_c7bee.dir/CheckSymbolExists.c.o  -o cmTC_c7bee 
+CMakeFiles/cmTC_c7bee.dir/CheckSymbolExists.c.o : Dans la fonction « main » :
+CheckSymbolExists.c:(.text+0x16) : référence indéfinie vers « pthread_create »
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_c7bee.dir/build.make:97 : la recette pour la cible « cmTC_c7bee » a échouée
+make[1]: *** [cmTC_c7bee] Erreur 1
+make[1] : on quitte le répertoire « /home/emeric/Master_2/Synthese_Image/sia_td5/build/CMakeFiles/CMakeTmp »
+Makefile:126 : la recette pour la cible « cmTC_c7bee/fast » a échouée
+make: *** [cmTC_c7bee/fast] Erreur 2
+
+File /home/emeric/Master_2/Synthese_Image/sia_td5/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/emeric/Master_2/Synthese_Image/sia_td5/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_48817/fast"
+/usr/bin/make -f CMakeFiles/cmTC_48817.dir/build.make CMakeFiles/cmTC_48817.dir/build
+make[1] : on entre dans le répertoire « /home/emeric/Master_2/Synthese_Image/sia_td5/build/CMakeFiles/CMakeTmp »
+Building C object CMakeFiles/cmTC_48817.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_48817.dir/CheckFunctionExists.c.o   -c /usr/local/share/cmake-3.9/Modules/CheckFunctionExists.c
+Linking C executable cmTC_48817
+/usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_48817.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_48817.dir/CheckFunctionExists.c.o  -o cmTC_48817 -lpthreads 
+/usr/bin/ld : ne peut trouver -lpthreads
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_48817.dir/build.make:97 : la recette pour la cible « cmTC_48817 » a échouée
+make[1]: *** [cmTC_48817] Erreur 1
+make[1] : on quitte le répertoire « /home/emeric/Master_2/Synthese_Image/sia_td5/build/CMakeFiles/CMakeTmp »
+Makefile:126 : la recette pour la cible « cmTC_48817/fast » a échouée
+make: *** [cmTC_48817/fast] Erreur 2
+
+
