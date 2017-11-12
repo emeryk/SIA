@@ -721,6 +721,7 @@ CMakeFiles/sia_td5.dir/src/main.cpp.o: ../include/camera.h
 CMakeFiles/sia_td5.dir/src/main.cpp.o: ../include/fbo.h
 CMakeFiles/sia_td5.dir/src/main.cpp.o: ../include/mesh.h
 CMakeFiles/sia_td5.dir/src/main.cpp.o: ../include/opengl.h
+CMakeFiles/sia_td5.dir/src/main.cpp.o: ../include/quad.h
 CMakeFiles/sia_td5.dir/src/main.cpp.o: ../include/shader.h
 CMakeFiles/sia_td5.dir/src/main.cpp.o: ../include/shape.h
 CMakeFiles/sia_td5.dir/src/main.cpp.o: ../include/sphere.h

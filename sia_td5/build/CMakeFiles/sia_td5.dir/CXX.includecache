@@ -1367,6 +1367,8 @@ sphere.h
 ../include/sphere.h
 fbo.h
 ../include/fbo.h
+quad.h
+../include/quad.h
 iostream
 -
 
@@ -1451,8 +1453,6 @@ camera.h
 /home/emeric/Master_2/Synthese_Image/sia_td5/src/camera.h
 quad.h
 /home/emeric/Master_2/Synthese_Image/sia_td5/src/quad.h
-fbo.h
-/home/emeric/Master_2/Synthese_Image/sia_td5/src/fbo.h
 
 ext/glbinding/source/glbinding/include/glbinding/glbinding_api.h
 

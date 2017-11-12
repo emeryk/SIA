@@ -6,17 +6,15 @@
 class FBO
 {
 public:
-    FBO() {}
     void init(int width, int height);
     void bind();
     void unbind();
-    void savePNG(const std::string& name);
+    void savePNG(const std::string& name, int indexBuffer);
     void checkFBOAttachment();
     int width() const { return _width; }
     int height() const { return _height; }
 
-    GLuint renderedTexture;
-    GLuint renderedTexture2;
+    GLuint renderedTexture[2];
     GLuint depthTexture;
 
 private:

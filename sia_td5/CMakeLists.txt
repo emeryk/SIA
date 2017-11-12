@@ -35,7 +35,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
   endif()
 endif()
 
-set(SRC_FILES 
+set(SRC_FILES
     include/viewer.h
     include/shader.h
     include/opengl.h

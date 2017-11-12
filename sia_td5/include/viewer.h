@@ -7,6 +7,7 @@
 #include "mesh.h"
 #include "sphere.h"
 #include "fbo.h"
+#include "quad.h"
 
 #include <iostream>
 
@@ -33,23 +34,25 @@ public:
 private:
     int _winWidth, _winHeight;
 
+    FBO fbo;
+    Quad quad1;
+
     Camera _cam;
-    Shader _blinnPrg, _simplePrg, _gbufferPrg;
+    Shader _blinnPrg, _simplePrg, _gbufferPrg, _deferredPrg;
 
     // some geometry to render
     std::vector<Shape*> _shapes;
     std::vector<float> _specularCoef;
 
     // geometrical representation of a pointlight
-    Sphere _pointLight;
-    Eigen::Vector3f _lightColor;
+    std::vector<Sphere*> _pointLight;
+    std::vector<Eigen::Vector3f> _lightColor;
     float _lightAngle = 0.f;
 
     // Mouse parameters
     Eigen::Vector2f _lastMousePos;
     int _button = -1;
 
-    FBO* fbo;
 };
 
 #endif

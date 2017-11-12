@@ -722,6 +722,7 @@ CMakeFiles/sia_td5.dir/src/main.cpp.o
  ../include/fbo.h
  ../include/mesh.h
  ../include/opengl.h
+ ../include/quad.h
  ../include/shader.h
  ../include/shape.h
  ../include/sphere.h

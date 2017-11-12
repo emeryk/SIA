@@ -1,7 +1,6 @@
 #include "viewer.h"
 #include "camera.h"
 #include "quad.h"
-#include "fbo.h"
 
 extern int WIDTH;
 extern int HEIGHT;
@@ -48,10 +47,28 @@ void Viewer::init(int w, int h){
     _shapes.push_back(mesh);
     _specularCoef.push_back(0.2);
 
-    _pointLight = Sphere(0.025f);
-    _pointLight.init();
-    _pointLight.setTransformationMatrix(Affine3f(Translation3f(1,0.75,1)));
-    _lightColor = Vector3f(1,1,1);
+    Sphere* sphere1 = new Sphere(0.020f);
+    sphere1->init();
+    sphere1->setTransformationMatrix(Affine3f(Translation3f(1.0, 1.0, 1.0)));
+    _pointLight.push_back(sphere1);
+
+    Sphere* sphere2 = new Sphere(0.040f);
+    sphere2->init();
+    sphere2->setTransformationMatrix(Affine3f(Translation3f(1.0, 1.0, -1.0)));
+    _pointLight.push_back(sphere2);
+
+    Sphere* sphere3 = new Sphere(0.050f);
+    sphere3->init();
+    sphere3->setTransformationMatrix(Affine3f(Translation3f(-1.0, 1.0, 1.0)));
+    _pointLight.push_back(sphere3);
+
+    Vector3f c1 = Vector3f(1.0, 1.0, 1.0);
+    Vector3f c2 = Vector3f(1.0, 0.5, 0.0);
+    Vector3f c3 = Vector3f(1.0, 0.0, 1.0);
+
+    _lightColor.push_back(c1);
+    _lightColor.push_back(c2);
+    _lightColor.push_back(c3);
 
     AlignedBox3f aabb;
     for(int i=0; i<_shapes.size(); ++i)
@@ -65,8 +82,9 @@ void Viewer::init(int w, int h){
                             _cam.sceneRadius() * 100.f);
     _cam.setScreenViewport(AlignedBox2f(Vector2f(0.0,0.0), Vector2f(w,h)));
 
-    fbo = new FBO();
-    fbo->init(w, h);
+    fbo.init(w, h);
+
+    quad1.init();
 
     glViewport(0, 0, w, h);
     glEnable(GL_DEPTH_TEST);
@@ -85,7 +103,7 @@ void Viewer::reshape(int w, int h){
  */
 void Viewer::display()
 {
-    fbo->bind();
+    /*fbo.bind();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -98,7 +116,7 @@ void Viewer::display()
     {
         glUniformMatrix4fv(_gbufferPrg.getUniformLocation("model_matrix"),1,false,_shapes[i]->getTransformationMatrix().data());
         Matrix3f normal_matrix = (_cam.computeViewMatrix()*_shapes[i]->getTransformationMatrix()).linear().inverse().transpose();
-        glUniformMatrix3fv(_gbufferPrg.getUniformLocation("normal_matrix"), 1, GL_FALSE, normal_matrix.data());
+        glUniformMatrix3fv(_gbufferPrg.getUniformLocation("normal_matrix"), 1, false, normal_matrix.data());
         glUniform1f(_gbufferPrg.getUniformLocation("specular_coef"),_specularCoef[i]);
 
         _shapes[i]->display(&_gbufferPrg);
@@ -106,49 +124,49 @@ void Viewer::display()
 
     _gbufferPrg.deactivate();
 
-    fbo->savePNG("out");
+    fbo.unbind();
+    fbo.savePNG("couleurs", 0);
+    fbo.savePNG("normales", 1);*/
 
-    fbo->unbind();
-
+    glDisable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
+    glBlendFunc(GL_ONE, GL_ONE);
 
     _blinnPrg.activate();
 
     glUniformMatrix4fv(_blinnPrg.getUniformLocation("projection_matrix"),1,false,_cam.computeProjectionMatrix().data());
     glUniformMatrix4fv(_blinnPrg.getUniformLocation("view_matrix"),1,false,_cam.computeViewMatrix().data());
 
-    // update light position
-    Vector3f lightPos = (_pointLight.getTransformationMatrix()*Vector4f(0,0,0,1)).head(3);
-    lightPos[0] = cos(_lightAngle) + 0.5;
-    lightPos[2] = sin(_lightAngle) + 0.5;
-    _lightAngle += M_PI_2/1000.0;
-    _pointLight.setTransformationMatrix(Affine3f(Translation3f(lightPos)));
-    Vector4f lightPosH;
-    lightPosH << lightPos, 1.f;
-    glUniform4fv(_blinnPrg.getUniformLocation("light_pos"),1,(_cam.computeViewMatrix()*lightPosH).eval().data());
-
     // draw meshes
-    for(int i=0; i<_shapes.size(); ++i)
+    for(int i=0; i<_pointLight.size(); ++i)
     {
         glUniformMatrix4fv(_blinnPrg.getUniformLocation("model_matrix"),1,false,_shapes[i]->getTransformationMatrix().data());
         Matrix3f normal_matrix = (_cam.computeViewMatrix()*_shapes[i]->getTransformationMatrix()).linear().inverse().transpose();
         glUniformMatrix3fv(_blinnPrg.getUniformLocation("normal_matrix"), 1, GL_FALSE, normal_matrix.data());
         glUniform1f(_blinnPrg.getUniformLocation("specular_coef"),_specularCoef[i]);
-        glUniform3fv(_blinnPrg.getUniformLocation("light_col"),1,_lightColor.data());
+        glUniform3fv(_blinnPrg.getUniformLocation("light_col"),1,_lightColor[i].data());
 
         _shapes[i]->display(&_blinnPrg);
     }
 
     _blinnPrg.deactivate();
 
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+
     // Draw pointlight sources
-    _simplePrg.activate();
-    glUniformMatrix4fv(_simplePrg.getUniformLocation("projection_matrix"),1,false,_cam.computeProjectionMatrix().data());
-    glUniformMatrix4fv(_simplePrg.getUniformLocation("view_matrix"),1,false,_cam.computeViewMatrix().data());
-    glUniformMatrix4fv(_simplePrg.getUniformLocation("model_matrix"),1,false,_pointLight.getTransformationMatrix().data());
-    glUniform3fv(_simplePrg.getUniformLocation("light_col"),1,_lightColor.data());
-    _pointLight.display(&_simplePrg);
-    _simplePrg.deactivate();
+    for (int i(0); i < _pointLight.size(); i++)
+    {
+      _simplePrg.activate();
+      glUniformMatrix4fv(_simplePrg.getUniformLocation("projection_matrix"),1,false,_cam.computeProjectionMatrix().data());
+      glUniformMatrix4fv(_simplePrg.getUniformLocation("view_matrix"),1,false,_cam.computeViewMatrix().data());
+      glUniformMatrix4fv(_simplePrg.getUniformLocation("model_matrix"),1,false,_pointLight[i]->getTransformationMatrix().data());
+      glUniform3fv(_simplePrg.getUniformLocation("light_col"),1,_lightColor[i].data());
+      _pointLight[i]->display(&_simplePrg);
+      _simplePrg.deactivate();
+    }
 }
 
 
@@ -162,6 +180,7 @@ void Viewer::loadProgram()
     _blinnPrg.loadFromFiles(DATA_DIR"/shaders/blinn.vert", DATA_DIR"/shaders/blinn.frag");
     _simplePrg.loadFromFiles(DATA_DIR"/shaders/simple.vert", DATA_DIR"/shaders/simple.frag");
     _gbufferPrg.loadFromFiles(DATA_DIR"/shaders/gbuffer.vert", DATA_DIR"/shaders/gbuffer.frag");
+    _deferredPrg.loadFromFiles(DATA_DIR"/shaders/deferred.vert", DATA_DIR"/shaders/deferred.frag");
     checkError();
 }
 

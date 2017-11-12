@@ -6,16 +6,18 @@ void FBO::init(int width, int height)
     _width = width;
     _height = height;
 
+
+    // Couleurs
     //1. generate a framebuffer object and bind it
     // TODO
-    glGenFramebuffers(2, &_fboId);
+    glGenFramebuffers(1, &_fboId);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fboId);
 
     //2. init texture
-    glGenTextures(1, &renderedTexture);
+    glGenTextures(1, &renderedTexture[0]);
 
     // Bind the newly created texture
-    glBindTexture(GL_TEXTURE_2D, renderedTexture);
+    glBindTexture(GL_TEXTURE_2D, renderedTexture[0]);
 
     // Give an empty image to OpenGL
     glTexImage2D(GL_TEXTURE_2D, 0, (GLint)GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, 0);
@@ -27,24 +29,19 @@ void FBO::init(int width, int height)
 
     //3. attach the texture to FBO color attachment point
     // TODO
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderedTexture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderedTexture[0], 0);
 
+    // Normales
+    glGenTextures(1, &renderedTexture[1]);
+    glBindTexture(GL_TEXTURE_2D, renderedTexture[1]);
 
-    //2. init texture
-    glGenTextures(1, &renderedTexture2);
-    // Bind the newly created texture
-    glBindTexture(GL_TEXTURE_2D, renderedTexture2);
-    // Give an empty image to OpenGL
     glTexImage2D(GL_TEXTURE_2D, 0, (GLint)GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, 0);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (GLint)GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (GLint)GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (GLint)GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (GLint)GL_CLAMP_TO_EDGE);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, renderedTexture2, 0);
-
-
-
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, renderedTexture[1], 0);
 
 
     //4. init a depth buffer as a texture (in order to use it inside shaders afterward)
@@ -79,9 +76,9 @@ void FBO::unbind()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void FBO::savePNG(const std::string &name)
+void FBO::savePNG(const std::string &name, int indexBuffer)
 {
-    glBindTexture(GL_TEXTURE_2D, renderedTexture);
+    glBindTexture(GL_TEXTURE_2D, renderedTexture[indexBuffer]);
     GLubyte *data = new GLubyte [4 * _width * _height];
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     unsigned char* raw_data = reinterpret_cast<unsigned char*>(data);
